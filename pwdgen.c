@@ -237,7 +237,7 @@ void parse_exclude(const char *param)
 	}
 }
 
-inline int rndascii()
+int rndascii_rdrand()
 {
 	int b;
 
@@ -247,6 +247,38 @@ inline int rndascii()
 	);
 
 	return b & 0x7F;
+}
+
+int has_rdrand = -1;
+
+void check_rdrand()
+{
+	unsigned int feature_bits;
+
+	asm (
+		"movl $1, %%eax\n\t"
+		"cpuid\n\t"
+		"movl %%ecx, %0"
+		: "=r" (feature_bits)
+		:
+		: "eax", "edx", "ecx", "ebx"
+	);
+
+	has_rdrand = (feature_bits >> 30) & 0x01;
+}
+
+int rndascii()
+{
+	if (has_rdrand == -1) {
+		check_rdrand();
+	}
+
+	if (!has_rdrand) {
+		fprintf(stderr, "Error: rdrand is unavailable.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	return rndascii_rdrand();
 }
 
 int is_member_of(int c, char a[], size_t l)
