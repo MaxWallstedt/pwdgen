@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define MAX_LIM_FUNCS	32
 #define MAX_LIM_CHARS	256
@@ -19,6 +23,8 @@ int (*exclude_funcs[MAX_LIM_FUNCS])(int c);
 size_t n_exclude_funcs = 0;
 char exclude_chars[MAX_LIM_CHARS];
 size_t n_exclude_chars = 0;
+
+int rndfd;
 
 /* Strings */
 
@@ -140,7 +146,15 @@ int main(int argc, char *argv[])
 		parse_accept("@isgraph");
 	}
 
+	rndfd = open("/dev/urandom", O_RDONLY);
+
+	if (rndfd == -1) {
+		perror("/dev/random");
+		exit(EXIT_FAILURE);
+	}
+
 	pwdgen_main();
+	close(rndfd);
 
 	return 0;
 }
@@ -237,48 +251,18 @@ void parse_exclude(const char *param)
 	}
 }
 
-int rndascii_rdrand()
-{
-	int b;
-
-	asm (
-		"rdrand %0\n"
-		: "=r" (b)
-	);
-
-	return b & 0x7F;
-}
-
-int has_rdrand = -1;
-
-void check_rdrand()
-{
-	unsigned int feature_bits;
-
-	asm (
-		"movl $1, %%eax\n\t"
-		"cpuid\n\t"
-		"movl %%ecx, %0"
-		: "=r" (feature_bits)
-		:
-		: "eax", "edx", "ecx", "ebx"
-	);
-
-	has_rdrand = (feature_bits >> 30) & 0x01;
-}
-
 int rndascii()
 {
-	if (has_rdrand == -1) {
-		check_rdrand();
+	unsigned char rnd;
+	ssize_t nread;
+
+	nread = read(rndfd, &rnd, 1);
+
+	if (nread != 1) {
+		return -1;
 	}
 
-	if (!has_rdrand) {
-		fprintf(stderr, "Error: rdrand is unavailable.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	return rndascii_rdrand();
+	return rnd & 0x7F;
 }
 
 int is_member_of(int c, char a[], size_t l)
