@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 	rndfd = open("/dev/urandom", O_RDONLY);
 
 	if (rndfd == -1) {
-		perror("/dev/random");
+		perror("/dev/urandom");
 		exit(EXIT_FAILURE);
 	}
 
