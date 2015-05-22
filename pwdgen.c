@@ -265,6 +265,19 @@ int rndascii()
 	return rnd & 0x7F;
 }
 
+int passes_one_func(int c, int (*funcs[])(int), size_t n_funcs)
+{
+	size_t i;
+
+	for (i = 0; i < n_funcs; ++i) {
+		if (funcs[i](c)) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 int is_member_of(int c, char a[], size_t l)
 {
 	size_t i;
@@ -278,32 +291,6 @@ int is_member_of(int c, char a[], size_t l)
 	return 0;
 }
 
-int passes_all_accept_funcs(int c)
-{
-	size_t i;
-
-	for (i = 0; i < n_accept_funcs; ++i) {
-		if (!accept_funcs[i](c)) {
-			return 0;
-		}
-	}
-
-	return 1;
-}
-
-int fails_all_exclude_funcs(int c)
-{
-	size_t i;
-
-	for (i = 0; i < n_exclude_funcs; ++i) {
-		if (exclude_funcs[i](c)) {
-			return 0;
-		}
-	}
-
-	return 1;
-}
-
 void pwdgen_main()
 {
 	size_t i = 0;
@@ -312,28 +299,17 @@ void pwdgen_main()
 	while (i < length) {
 		c = rndascii();
 
-		if (n_accept_chars > 0 && !is_member_of(c,
-		                                        accept_chars,
-		                                        n_accept_chars)) {
+		if (!passes_one_func(c, accept_funcs, n_accept_funcs)
+		    && !is_member_of(c, accept_chars, n_accept_chars)) {
 			continue;
 		}
 
-		if (n_exclude_chars > 0 && is_member_of(c,
-		                                        exclude_chars,
-		                                        n_exclude_chars)) {
-			continue;
-		}
-
-		if (!passes_all_accept_funcs(c)) {
-			continue;
-		}
-
-		if (!fails_all_exclude_funcs(c)) {
+		if (passes_one_func(c, exclude_funcs, n_exclude_funcs)
+		    || is_member_of(c, exclude_chars, n_exclude_chars)) {
 			continue;
 		}
 
 		putchar(c);
-
 		++i;
 	}
 
