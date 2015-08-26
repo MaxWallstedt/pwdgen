@@ -142,7 +142,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (n_accept_funcs == 0 && n_exclude_funcs == 0) {
+	if (n_accept_funcs == 0 && n_exclude_funcs == 0
+	    && n_accept_chars == 0 && n_exclude_chars == 0) {
 		parse_accept("@isgraph");
 	}
 
